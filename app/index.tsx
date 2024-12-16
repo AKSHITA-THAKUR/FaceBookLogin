@@ -1,28 +1,42 @@
-import { Text, View } from "react-native";
-import { useEffect } from "react";
+import { Text, View, Pressable } from "react-native";
+import { useEffect, useState } from "react";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import {
   AccessToken,
   LoginButton,
   Settings,
   Profile,
-  GraphRequest
+  GraphRequest,
+  GraphRequestManager,
 } from "react-native-fbsdk-next";
 export default function Index() {
-  useEffect(()=>{
-    const requestTracking = async() =>{
-     const {status} = await requestTrackingPermissionsAsync();
+  const [userName, setUserName] = useState<any>("");
 
-     Settings.initializeSDK();
+  useEffect(() => {
+    const requestTracking = async () => {
+      const { status } = await requestTrackingPermissionsAsync();
 
-     if(status === "granted") {
-      await Settings.setAdvertiserTrackingEnabled(true);
-     }
-    }
+      Settings.initializeSDK();
+
+      if (status === "granted") {
+        await Settings.setAdvertiserTrackingEnabled(true);
+      }
+    };
     requestTracking();
-  },[])
+  }, []);
 
-  
+  const getProfileInfo = async () => {  //Function to access the profile info
+    const infoRequest = new GraphRequest("/me", undefined, (error, result) => {  
+      if (error) {
+        console.error("Error fetching profile info:", error);
+      } else if (result) {
+        console.log("Profile info:", result);
+        setUserName(result.name);
+      }
+    });
+    new GraphRequestManager().addRequest(infoRequest).start(); //
+  };
+
   return (
     <View
       style={{
@@ -32,10 +46,29 @@ export default function Index() {
       }}
     >
       <Text>FaceBook Login App , Click Below </Text>
-      <LoginButton onLogoutFinished={()=> console.log("Logged Out")}
-        onLoginFinished={(error , data)=> {console.log(error || data);
-          AccessToken.getCurrentAccessToken().then((data)=> console.log(data))
-        }}/>
+      <LoginButton
+        onLogoutFinished={() => {console.log("Logged Out")
+          setUserName("")
+         }}
+        onLoginFinished={(error, data) => {
+          console.log(error || data);
+          AccessToken.getCurrentAccessToken().then((data) => console.log(data));
+        }}
+      />
+
+      <Pressable
+        style={{ padding: 10, marginTop: 10, backgroundColor: "skyblue" }}
+        onPress={getProfileInfo}
+      >
+        <Text>Get Profile Info</Text>
+      </Pressable>
+
+      {userName && (
+        <Text style={{ fontSize: 30 }}>
+
+          Welcome to your Profile {userName}
+        </Text>
+      )}
     </View>
   );
 }
